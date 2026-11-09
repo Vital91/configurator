@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8f4ed">
+  <title>Portail Vital | Configuration</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #19332c;
+      --muted: #71827b;
+      --paper: #f4f8f4;
+      --surface: #fff;
+      --line: #dce8df;
+      --green: #217a55;
+      --green-dark: #185c40;
+      --orange: #f47755;
+      --shadow: 0 22px 60px rgba(35, 75, 56, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 16px;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#b9d7c3 .8px, transparent .8px);
+      background-size: 22px 22px;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    main {
+      width: min(100%, 620px);
+      margin: 0 auto;
+      padding: 28px;
+      border: 1px solid rgba(220, 232, 223, .9);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .brand {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .tag {
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 0; font-size: clamp(26px, 6vw, 34px); }
+    .subtitle { margin: 9px 0 24px; color: var(--muted); line-height: 1.5; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      margin-bottom: 22px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbf8;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .status::before {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      border-radius: 50%;
+      background: #e7ad45;
+      content: "";
+    }
+
+    .status[data-state="connected"] { color: var(--ink); }
+    .status[data-state="connected"]::before { background: #38a86c; }
+    .status[data-state="error"]::before { background: var(--orange); }
+
+    .section {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    h2 { margin: 0 0 6px; font-size: 17px; }
+    .hint { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .duration-row {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+    }
+
+    label { display: grid; flex: 1; gap: 7px; font-size: 13px; font-weight: 600; }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      background: white;
+    }
+
+    input:focus-visible, button:focus-visible {
+      outline: 3px solid #f4b19e;
+      outline-offset: 2px;
+    }
+
+    .button {
+      min-height: 46px;
+      padding: 10px 15px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--green-dark);
+      background: white;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .button:hover { border-color: #a9cbb5; background: #f5faf6; }
+    .button:disabled { cursor: not-allowed; opacity: .55; }
+    .button-primary { border-color: transparent; color: white; background: var(--green); }
+    .button-primary:hover { background: var(--green-dark); }
+    .button-learn { border-color: transparent; color: white; background: var(--orange); }
+    .button-learn:hover { background: #d95c3e; }
+
+    .badges {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .badge {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge-details { min-width: 0; flex: 1; display: grid; gap: 6px; }
+    .badge-id { color: var(--muted); font-size: 12px; }
+    .badge input { min-height: 38px; padding: 7px 9px; }
+    .badge-actions { display: flex; align-items: center; gap: 8px; }
+    .badge-empty { color: var(--muted); font-size: 13px; }
+    .button-badge { min-height: 34px; padding: 6px 9px; font-size: 12px; }
+    .button-remove { color: #a23e2a; }
+
+    @media (max-width: 480px) {
+      main { padding: 21px; }
+      .section { padding: 16px; }
+      .duration-row { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand">PORTAIL DE VITAL</p>
+      <span class="tag">CONFIGURATION · BLE</span>
+    </header>
+
+    <section aria-labelledby="page-title">
+      <p class="eyebrow">PortalReceiver</p>
+      <h1 id="page-title">Configurer le portail</h1>
+      <p class="subtitle">Réglez la durée du relais et gérez les badges autorisés.</p>
+      <button class="button button-primary" id="connect" type="button">Connecter le receiver</button>
+      <p class="status" id="status" data-state="waiting" role="status" aria-live="polite">
+        Connexion BLE en attente.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="relay-title">
+      <h2 id="relay-title">Durée du relais</h2>
+      <p class="hint">Durée d’activation à chaque ouverture, entre 100 et 10 000 ms.</p>
+      <div class="duration-row">
+        <label for="relay-duration">
+          Durée (ms)
+          <input id="relay-duration" type="number" min="100" max="10000" step="100" value="1000" disabled>
+        </label>
+        <button class="button" id="save-duration" type="button" disabled>Enregistrer</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="badges-title">
+      <h2 id="badges-title">Badges autorisés</h2>
+      <p class="hint" id="badge-count">Aucun badge enregistré. Maximum : 32.</p>
+      <p class="hint">Ajoutez un nom à chaque badge pour le reconnaître plus facilement.</p>
+      <button class="button button-learn" id="learn" type="button" disabled>Apprentissage RFID</button>
+      <ul class="badges" id="badges" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <script>
+    const ACTION_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const CONFIG_SERVICE_UUID = "8d3f0001-9b2c-4e6a-9b7a-1e9e00000001";
+    const CONFIG_CHARACTERISTIC_UUID = "8d3f0002-9b2c-4e6a-9b7a-1e9e00000001";
+    const MAX_BADGES = 32;
+
+    const statusElement = document.getElementById("status");
+    const connectButton = document.getElementById("connect");
+    const durationInput = document.getElementById("relay-duration");
+    const saveButton = document.getElementById("save-duration");
+    const learnButton = document.getElementById("learn");
+    const badgeList = document.getElementById("badges");
+    const badgeCount = document.getElementById("badge-count");
+    let configurationCharacteristic;
+    let authorizedBadges = [];
+    let badgeNames = [];
+
+    const deviceMessages = {
+      ready: "Receiver prêt.",
+      learning: "Présentez maintenant le badge à enregistrer.",
+      saved: "Configuration enregistrée sur le receiver.",
+      badge_added: "Badge enregistré. Il n’a pas déclenché le relais.",
+      badge_exists: "Ce badge est déjà autorisé.",
+      badge_limit: "La liste est pleine (32 badges).",
+      invalid_badge_name: "Le nom du badge est trop long ou invalide.",
+      storage_error: "Erreur LittleFS : configuration non enregistrée.",
+      bad_json: "Commande de configuration invalide.",
+      invalid_duration: "La durée doit être comprise entre 100 et 10 000 ms.",
+      badge_not_found: "Badge introuvable.",
+      unknown_action: "Action de configuration inconnue."
+    };
+
+    function setStatus(message, state = "waiting") {
+      statusElement.textContent = message;
+      statusElement.dataset.state = state;
+    }
+
+    function renderBadges() {
+      badgeList.replaceChildren();
+      badgeCount.textContent = `${authorizedBadges.length} / ${MAX_BADGES} badges enregistrés.`;
+
+      if (authorizedBadges.length === 0) {
+        const item = document.createElement("li");
+        item.className = "badge-empty";
+        item.textContent = "Aucun badge. Les badges non enregistrés sont refusés.";
+        badgeList.append(item);
+        return;
+      }
+
+      for (const badgeId of authorizedBadges) {
+        const item = document.createElement("li");
+        item.className = "badge";
+        const details = document.createElement("div");
+        details.className = "badge-details";
+        const label = document.createElement("span");
+        label.className = "badge-id";
+        label.textContent = `Badge ${badgeId}`;
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.maxLength = 32;
+        nameInput.placeholder = "Nom du badge";
+        nameInput.setAttribute("aria-label", `Nom du badge ${badgeId}`);
+        nameInput.value = badgeNames.find(entry => entry.badgeId === badgeId)?.name || "";
+        nameInput.disabled = !configurationCharacteristic;
+        const actions = document.createElement("div");
+        actions.className = "badge-actions";
+        const saveNameButton = document.createElement("button");
+        saveNameButton.className = "button button-badge";
+        saveNameButton.type = "button";
+        saveNameButton.textContent = "Enregistrer";
+        saveNameButton.disabled = !configurationCharacteristic;
+        saveNameButton.addEventListener("click", () => sendCommand({
+          action: "setBadgeName",
+          badgeId,
+          name: nameInput.value.trim()
+        }));
+        const removeButton = document.createElement("button");
+        removeButton.className = "button button-badge button-remove";
+        removeButton.type = "button";
+        removeButton.textContent = "Supprimer";
+        removeButton.setAttribute("aria-label", `Supprimer le badge ${badgeId}`);
+        removeButton.disabled = !configurationCharacteristic;
+        removeButton.addEventListener("click", () => sendCommand({ action: "removeBadge", badgeId }));
+        details.append(label, nameInput);
+        actions.append(saveNameButton, removeButton);
+        item.append(details, actions);
+        badgeList.append(item);
+      }
+    }
+
+    function updateConfiguration(value) {
+      let config;
+      try {
+        config = JSON.parse(new TextDecoder().decode(value));
+      } catch {
+        setStatus("Réponse de configuration invalide.", "error");
+        return;
+      }
+
+      if (!Number.isInteger(config.relayDurationMs) || !Array.isArray(config.authorizedBadges) ||
+          (config.badgeNames !== undefined && !Array.isArray(config.badgeNames))) {
+        setStatus("Format de configuration du receiver invalide.", "error");
+        return;
+      }
+
+      durationInput.value = String(config.relayDurationMs);
+      authorizedBadges = config.authorizedBadges;
+      badgeNames = config.badgeNames || [];
+      renderBadges();
+
+      if (config.learning) {
+        learnButton.textContent = "En attente du badge…";
+      } else {
+        learnButton.textContent = "Apprentissage RFID";
+      }
+
+      const message = deviceMessages[config.status] || "Configuration synchronisée.";
+      setStatus(message, config.status === "storage_error" || config.status === "bad_json" ? "error" : "connected");
+    }
+
+    async function readConfiguration() {
+      const value = await configurationCharacteristic.readValue();
+      updateConfiguration(value);
+    }
+
+    async function sendCommand(command) {
+      if (!configurationCharacteristic) {
+        setStatus("Connectez-vous au receiver avant de modifier sa configuration.", "error");
+        return;
+      }
+
+      try {
+        const bytes = new TextEncoder().encode(JSON.stringify(command));
+        await configurationCharacteristic.writeValueWithResponse(bytes);
+      } catch (error) {
+        setStatus(`Échec de l’envoi : ${error.message}`, "error");
+      }
+    }
+
+    async function connect() {
+      if (!isSecureContext || !navigator.bluetooth) {
+        setStatus("Web Bluetooth nécessite Chrome sur HTTPS ou localhost.", "error");
+        return;
+      }
+
+      connectButton.disabled = true;
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [ACTION_SERVICE_UUID] }],
+          optionalServices: [CONFIG_SERVICE_UUID]
+        });
+        device.addEventListener("gattserverdisconnected", () => {
+          configurationCharacteristic = undefined;
+          durationInput.disabled = true;
+          saveButton.disabled = true;
+          learnButton.disabled = true;
+          connectButton.disabled = false;
+          renderBadges();
+          setStatus("Receiver déconnecté.");
+        });
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(CONFIG_SERVICE_UUID);
+        configurationCharacteristic = await service.getCharacteristic(CONFIG_CHARACTERISTIC_UUID);
+        configurationCharacteristic.addEventListener("characteristicvaluechanged", event => {
+          updateConfiguration(event.target.value);
+        });
+        await configurationCharacteristic.startNotifications();
+        durationInput.disabled = false;
+        saveButton.disabled = false;
+        learnButton.disabled = false;
+        connectButton.disabled = false;
+        await readConfiguration();
+        setStatus(`Connecté à ${device.name || "PortalReceiver"}.`, "connected");
+      } catch (error) {
+        configurationCharacteristic = undefined;
+        connectButton.disabled = false;
+        durationInput.disabled = true;
+        saveButton.disabled = true;
+        learnButton.disabled = true;
+        setStatus(`Échec de connexion : ${error.message}`, "error");
+      }
+    }
+
+    connectButton.addEventListener("click", connect);
+    saveButton.addEventListener("click", () => {
+      const duration = Number(durationInput.value);
+      if (!Number.isInteger(duration) || duration < 100 || duration > 10000) {
+        setStatus("La durée doit être comprise entre 100 et 10 000 ms.", "error");
+        return;
+      }
+      sendCommand({ action: "setRelayDuration", relayDurationMs: duration });
+    });
+    learnButton.addEventListener("click", () => sendCommand({ action: "learn" }));
+    renderBadges();
+  </script>
+</body>
+</html>

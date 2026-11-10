@@ -192,6 +192,8 @@
     .button-primary:hover { background: var(--green-dark); }
     .button-learn { margin-bottom: 16px; border-color: transparent; color: white; background: var(--orange); }
     .button-learn:hover { background: #d95c3e; }
+    .learning-countdown { margin: -8px 0 16px; color: var(--green-dark); font-size: 13px; font-weight: 700; }
+    .learning-countdown[hidden] { display: none; }
 
     .badges {
       display: grid;
@@ -267,6 +269,7 @@
       <p class="hint" id="badge-count">Aucun badge enregistré. Maximum : 32.</p>
       <p class="hint">Ajoutez un nom à chaque badge pour le reconnaître plus facilement.</p>
       <button class="button button-learn" id="learn" type="button" disabled>Apprentissage RFID</button>
+      <p class="learning-countdown" id="learning-countdown" role="status" aria-live="polite" hidden></p>
       <ul class="badges" id="badges" aria-live="polite"></ul>
     </section>
 
@@ -352,6 +355,7 @@
     const setReceiverTimeButton = document.getElementById("set-receiver-time");
     const badgeList = document.getElementById("badges");
     const badgeCount = document.getElementById("badge-count");
+    const learningCountdown = document.getElementById("learning-countdown");
     const userForm = document.getElementById("user-form");
     const userNameInput = document.getElementById("user-name");
     const userPinInput = document.getElementById("user-pin");
@@ -370,6 +374,12 @@
     let authorizedUsers = [];
     let editingUserIndex = null;
     let userRefreshPromise;
+    let learningCountdownId;
+    let learningDeadline = 0;
+    let learningActive = false;
+    let learningConfirmed = false;
+    let learningCommandPending = false;
+    let learningRefreshPromise;
     let receiverClockTimestamp = null;
     let receiverClockReadAt = 0;
     let receiverTimeSynchronized = false;
@@ -379,6 +389,8 @@
       learning: "Présentez maintenant le badge à enregistrer.",
       saved: "Configuration enregistrée sur le receiver.",
       badge_added: "Badge enregistré. Il n’a pas déclenché le relais.",
+      learning_timeout: "Aucun badge détecté après 30 secondes. Apprentissage annulé.",
+      learning_cancelled: "Apprentissage RFID annulé.",
       badge_exists: "Ce badge est déjà autorisé.",
       badge_limit: "La liste est pleine (32 badges).",
       invalid_badge_name: "Le nom du badge est trop long ou invalide.",
@@ -399,6 +411,54 @@
     function setStatus(message, state = "waiting") {
       statusElement.textContent = message;
       statusElement.dataset.state = state;
+    }
+
+    function stopBadgeLearning() {
+      learningActive = false;
+      learningConfirmed = false;
+      learningCommandPending = false;
+      learningDeadline = 0;
+      if (learningCountdownId !== undefined) {
+        window.clearInterval(learningCountdownId);
+        learningCountdownId = undefined;
+      }
+      learnButton.textContent = "Apprentissage RFID";
+      learningCountdown.hidden = true;
+      learningCountdown.textContent = "";
+    }
+
+    function renderLearningCountdown() {
+      const secondsLeft = Math.max(0, Math.ceil((learningDeadline - performance.now()) / 1000));
+      if (secondsLeft > 0) {
+        learnButton.textContent = `Badge maintenant · ${secondsLeft} s`;
+        learningCountdown.textContent = `Présentez le badge maintenant — ${secondsLeft} s restantes.`;
+      } else {
+        learnButton.textContent = "Vérification…";
+        learningCountdown.textContent = "Délai écoulé — vérification de l’état du receiver…";
+      }
+    }
+
+    function startBadgeLearning() {
+      learningActive = true;
+      learnButton.textContent = "Lecture du badge…";
+      learningCountdown.hidden = false;
+      if (learningCountdownId !== undefined) {
+        return;
+      }
+      learningDeadline = performance.now() + 30000;
+      renderLearningCountdown();
+      learningCountdownId = window.setInterval(() => {
+        renderLearningCountdown();
+        if (learningConfirmed && !learningRefreshPromise && configurationCharacteristic) {
+          learningRefreshPromise = readConfiguration()
+            .catch(error => {
+              setStatus(`Échec de vérification de l’apprentissage : ${error.message}`, "error");
+            })
+            .finally(() => {
+              learningRefreshPromise = undefined;
+            });
+        }
+      }, 1000);
     }
 
     function toLocalDateTimeValue(date) {
@@ -579,7 +639,26 @@
         removeButton.textContent = "Supprimer";
         removeButton.setAttribute("aria-label", `Supprimer le badge ${badgeId}`);
         removeButton.disabled = !configurationCharacteristic;
-        removeButton.addEventListener("click", () => sendCommand({ action: "removeBadge", badgeId }));
+        removeButton.addEventListener("click", async () => {
+          if (!await sendCommand({ action: "removeBadge", badgeId })) {
+            return;
+          }
+          setStatus("Suppression du badge en cours…");
+          try {
+            for (let attempt = 0; attempt < 10; attempt++) {
+              await readConfiguration();
+              if (!authorizedBadges.includes(badgeId)) {
+                return;
+              }
+              if (attempt < 9) {
+                await new Promise(resolve => window.setTimeout(resolve, 100));
+              }
+            }
+            setStatus("La liste des badges n’a pas été actualisée. Réessayez.", "error");
+          } catch (error) {
+            setStatus(`Échec de l’actualisation des badges : ${error.message}`, "error");
+          }
+        });
         details.append(label, nameInput);
         actions.append(saveNameButton, removeButton);
         item.append(details, actions);
@@ -592,7 +671,7 @@
       try {
         config = JSON.parse(new TextDecoder().decode(value));
       } catch {
-        setStatus("Réponse de configuration invalide.", "error");
+        setStatus("Connecté au portail, en attente de la configuration.", "connected");
         return;
       }
 
@@ -626,14 +705,26 @@
       } else if (config.status === "users_saved" || authorizedUsers.length !== currentUserCount) {
         void refreshUsers(currentUserCount);
       }
+      const learningFinished = [
+        "badge_added",
+        "badge_exists",
+        "badge_limit",
+        "learning_timeout",
+        "learning_cancelled"
+      ].includes(config.status);
+      if (config.learning && !learningConfirmed) {
+        learningConfirmed = true;
+        learningDeadline = performance.now() + 30000;
+        renderLearningCountdown();
+      }
+      if (learningFinished || (!config.learning && learningConfirmed && !learningCommandPending) ||
+          (config.status === "storage_error" && learningActive)) {
+        stopBadgeLearning();
+      } else if (config.learning && !learningActive) {
+        startBadgeLearning();
+      }
       renderBadges();
       renderUsers();
-
-      if (config.learning) {
-        learnButton.textContent = "En attente du badge…";
-      } else {
-        learnButton.textContent = "Apprentissage RFID";
-      }
 
       const message = deviceMessages[config.status] || "Configuration synchronisée.";
       setStatus(message, ["storage_error", "bad_json", "invalid_users", "duplicate_pin", "user_limit", "invalid_time"].includes(config.status) ? "error" : "connected");
@@ -675,11 +766,13 @@
 
     async function connectToDevice(device) {
       connectButton.disabled = true;
+      connectButton.textContent = "Connexion…";
       try {
         device.addEventListener("gattserverdisconnected", () => {
           configurationCharacteristic = undefined;
+          stopBadgeLearning();
           setConfigurationControlsEnabled(false);
-          userFormControls.forEach(control => { control.disabled = true; });
+          connectButton.textContent = "Se connecter au portail";
           connectButton.disabled = false;
           renderBadges();
           renderUsers();
@@ -697,7 +790,8 @@
         });
         await configurationCharacteristic.startNotifications();
         setConfigurationControlsEnabled(true);
-        connectButton.disabled = false;
+        connectButton.textContent = "Portail connecté";
+        connectButton.disabled = true;
         await readConfiguration();
         receiverDateTimeInput.value = toLocalDateTimeValue(new Date());
         if (await sendCommand({ action: "getTime" })) {
@@ -706,6 +800,7 @@
         }
       } catch (error) {
         configurationCharacteristic = undefined;
+        connectButton.textContent = "Se connecter au portail";
         connectButton.disabled = false;
         setConfigurationControlsEnabled(false);
         setStatus(`Échec de connexion : ${error.message}`, "error");
@@ -725,6 +820,7 @@
         });
         await connectToDevice(device);
       } catch (error) {
+        connectButton.textContent = "Se connecter au portail";
         connectButton.disabled = false;
         setStatus(`Échec de connexion : ${error.message}`, "error");
       }
@@ -757,7 +853,27 @@
       }
       sendCommand({ action: "setRelayDuration", relayDurationMs: duration });
     });
-    learnButton.addEventListener("click", () => sendCommand({ action: "learn" }));
+    learnButton.addEventListener("click", async () => {
+      if (learningActive) {
+        return;
+      }
+      learningCommandPending = true;
+      startBadgeLearning();
+      setStatus("Activation du mode apprentissage…");
+      if (!await sendCommand({ action: "learn" })) {
+        stopBadgeLearning();
+        return;
+      }
+      learningCommandPending = false;
+      learningConfirmed = true;
+      learningDeadline = performance.now() + 30000;
+      renderLearningCountdown();
+      try {
+        await readConfiguration();
+      } catch (error) {
+        setStatus(`Échec de vérification du mode apprentissage : ${error.message}`, "error");
+      }
+    });
     syncDeviceTimeButton.addEventListener("click", () => {
       receiverDateTimeInput.value = toLocalDateTimeValue(new Date());
       void applyReceiverTime(Math.floor(Date.now() / 1000));

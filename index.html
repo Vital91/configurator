@@ -33,7 +33,7 @@
       font-family: "Segoe UI", sans-serif;
     }
 
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
 
     main {
       width: min(100%, 620px);
@@ -48,9 +48,21 @@
     header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: initial;
       gap: 16px;
       margin-bottom: 30px;
+    }
+
+    .header-copy {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .header-title { margin: 0; }
+    .subtitle { margin: 9px 0 0; color: var(--muted); line-height: 1.5; }
+
+    .header-meta {
+      flex: 0 0 auto;
     }
 
     .brand {
@@ -70,6 +82,21 @@
       letter-spacing: .08em;
     }
 
+    .header-meta {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .configurator-image {
+      display: block;
+      width: 192px;
+      height: 140px;
+      border-radius: 7px;
+      object-fit: cover;
+    }
+
     .eyebrow {
       margin: 0 0 8px;
       color: var(--green);
@@ -80,8 +107,6 @@
     }
 
     h1 { margin: 0; font-size: clamp(26px, 6vw, 34px); }
-    .subtitle { margin: 9px 0 24px; color: var(--muted); line-height: 1.5; }
-
     .status {
       display: flex;
       align-items: center;
@@ -120,15 +145,22 @@
     h2 { margin: 0 0 6px; font-size: 17px; }
     .hint { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.45; }
 
+    h3 { margin: 0 0 6px; font-size: 14px; }
+
     .duration-row {
       display: flex;
       align-items: end;
       gap: 10px;
     }
 
+    .clock-row { display: flex; align-items: end; gap: 10px; }
+    .clock-status { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .clock-manual-row { margin-top: 12px; }
+    .clock-settings { margin-top: 22px; }
+
     label { display: grid; flex: 1; gap: 7px; font-size: 13px; font-weight: 600; }
 
-    input {
+    input, select {
       width: 100%;
       min-height: 46px;
       padding: 10px 12px;
@@ -158,7 +190,7 @@
     .button:disabled { cursor: not-allowed; opacity: .55; }
     .button-primary { border-color: transparent; color: white; background: var(--green); }
     .button-primary:hover { background: var(--green-dark); }
-    .button-learn { border-color: transparent; color: white; background: var(--orange); }
+    .button-learn { margin-bottom: 16px; border-color: transparent; color: white; background: var(--orange); }
     .button-learn:hover { background: #d95c3e; }
 
     .badges {
@@ -184,44 +216,50 @@
     .badge-id { color: var(--muted); font-size: 12px; }
     .badge input { min-height: 38px; padding: 7px 9px; }
     .badge-actions { display: flex; align-items: center; gap: 8px; }
-    .badge-empty { color: var(--muted); font-size: 13px; }
+    .badge-empty, .user-empty { color: var(--muted); font-size: 13px; }
     .button-badge { min-height: 34px; padding: 6px 9px; font-size: 12px; }
     .button-remove { color: #a23e2a; }
 
+    .user-form, .user-details { display: grid; gap: 12px; }
+    .user-row { display: flex; align-items: end; gap: 10px; }
+    .user-validity { display: flex; gap: 10px; }
+    .user-validity[hidden] { display: none; }
+    .user-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .user-meta { color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+    .user-actions { display: flex; align-items: center; gap: 8px; }
+    .user-list { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+
     @media (max-width: 480px) {
       main { padding: 21px; }
+      .header-meta { width: min(144px, 36vw); gap: 7px; }
+      .tag { max-width: 100%; text-align: center; }
+      .configurator-image { width: 100%; height: auto; aspect-ratio: 1.37; }
+      .header-title { font-size: clamp(17px, 5vw, 24px); }
       .section { padding: 16px; }
       .duration-row { align-items: stretch; flex-direction: column; }
+      .clock-row { align-items: stretch; flex-direction: column; }
+      .user-row, .user-validity { align-items: stretch; flex-direction: column; }
     }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <p class="brand">PORTAIL DE VITAL</p>
-      <span class="tag">CONFIGURATION · BLE</span>
+      <div class="header-copy">
+        <h1 class="header-title" id="page-title">Configuration portail</h1>
+        <p class="subtitle">Gestion des badges, des codes utilisateurs et de la configuration du portail.</p>
+      </div>
+      <div class="header-meta">
+        <img class="configurator-image" src="Configurator.jpg" alt="Illustration de configuration du portail">
+        <span class="tag">CONFIGURATION · BLE</span>
+      </div>
     </header>
-
     <section aria-labelledby="page-title">
-      <p class="eyebrow">PortalReceiver</p>
-      <h1 id="page-title">Configurer le portail</h1>
-      <p class="subtitle">Réglez la durée du relais et gérez les badges autorisés.</p>
-      <button class="button button-primary" id="connect" type="button">Connecter le receiver</button>
+    <section aria-labelledby="page-title">
+      <button class="button button-primary" id="connect" type="button">Se connecter au portail</button>
       <p class="status" id="status" data-state="waiting" role="status" aria-live="polite">
         Connexion BLE en attente.
       </p>
-    </section>
-
-    <section class="section" aria-labelledby="relay-title">
-      <h2 id="relay-title">Durée du relais</h2>
-      <p class="hint">Durée d’activation à chaque ouverture, entre 100 et 10 000 ms.</p>
-      <div class="duration-row">
-        <label for="relay-duration">
-          Durée (ms)
-          <input id="relay-duration" type="number" min="100" max="10000" step="100" value="1000" disabled>
-        </label>
-        <button class="button" id="save-duration" type="button" disabled>Enregistrer</button>
-      </div>
     </section>
 
     <section class="section" aria-labelledby="badges-title">
@@ -231,6 +269,69 @@
       <button class="button button-learn" id="learn" type="button" disabled>Apprentissage RFID</button>
       <ul class="badges" id="badges" aria-live="polite"></ul>
     </section>
+
+    <section class="section" aria-labelledby="users-title">
+      <h2 id="users-title">Codes utilisateurs</h2>
+      <p class="hint" id="user-count">Aucun utilisateur enregistré. Maximum : 32.</p>
+      <p class="hint">Les codes sont des PIN de 1 à 6 chiffres. Les dates sont inclusives et en UTC. Les codes à durée limitée sont refusés après chaque redémarrage jusqu’à la synchronisation de l’heure par cette page.</p>
+      <form class="user-form" id="user-form">
+        <div class="user-row">
+          <label for="user-name">Nom
+            <input id="user-name" type="text" maxlength="32" autocomplete="off" required disabled>
+          </label>
+          <label for="user-pin">Code secret (1 à 6 chiffres)
+            <input id="user-pin" type="text" inputmode="numeric" pattern="[0-9]{1,6}" maxlength="6" autocomplete="off" required disabled>
+          </label>
+        </div>
+        <label for="user-validity-mode">Validité
+          <select id="user-validity-mode" disabled>
+            <option value="forever">Pour toujours</option>
+            <option value="dates">Période définie</option>
+          </select>
+        </label>
+        <div class="user-validity" id="user-date-fields" hidden>
+          <label for="user-valid-from">Valide à partir du (UTC)
+            <input id="user-valid-from" type="date" disabled>
+          </label>
+          <label for="user-valid-until">Valide jusqu’au (UTC)
+            <input id="user-valid-until" type="date" disabled>
+          </label>
+        </div>
+        <div class="user-row">
+          <button class="button button-primary" id="user-submit" type="submit" disabled>Ajouter l’utilisateur</button>
+          <button class="button" id="cancel-user-edit" type="button" hidden disabled>Annuler</button>
+        </div>
+      </form>
+      <ul class="user-list" id="users" aria-live="polite"></ul>
+    </section>
+
+    <section class="section" aria-labelledby="relay-title">
+      <h2 id="relay-title">Configuration System</h2>
+      <h3 id="relay-title">Durée du relais</h3>
+      <p class="hint">Durée d’activation à chaque ouverture, entre 100 et 10 000 ms.</p>
+      <div class="duration-row">
+        <label for="relay-duration">
+          Durée (ms)
+          <input id="relay-duration" type="number" min="100" max="10000" step="100" value="1000" disabled>
+        </label>
+        <button class="button" id="save-duration" type="button" disabled>Enregistrer</button>
+      </div>
+      <div class="clock-settings">
+        <h3 id="clock-title">Date et heure du receiver</h3>
+        <p class="hint">Date et heure lues depuis l’ESP32. Les codes à période définie utilisent la date UTC du receiver.</p>
+        <p class="clock-status" id="clock-status" role="status" aria-live="polite">Connectez-vous pour consulter l’horloge du receiver.</p>
+        <div class="clock-row">
+          <button class="button button-primary" id="sync-device-time" type="button" disabled>Synchroniser avec cet appareil</button>
+        </div>
+        <div class="clock-row clock-manual-row">
+          <label for="receiver-date-time">Date et heure à appliquer (heure locale)
+            <input id="receiver-date-time" type="datetime-local" step="1" disabled>
+          </label>
+          <button class="button" id="set-receiver-time" type="button" disabled>Appliquer</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script>
@@ -238,17 +339,40 @@
     const CONFIG_SERVICE_UUID = "8d3f0001-9b2c-4e6a-9b7a-1e9e00000001";
     const CONFIG_CHARACTERISTIC_UUID = "8d3f0002-9b2c-4e6a-9b7a-1e9e00000001";
     const MAX_BADGES = 32;
+    const MAX_USERS = 32;
 
     const statusElement = document.getElementById("status");
     const connectButton = document.getElementById("connect");
     const durationInput = document.getElementById("relay-duration");
     const saveButton = document.getElementById("save-duration");
     const learnButton = document.getElementById("learn");
+    const clockStatus = document.getElementById("clock-status");
+    const receiverDateTimeInput = document.getElementById("receiver-date-time");
+    const syncDeviceTimeButton = document.getElementById("sync-device-time");
+    const setReceiverTimeButton = document.getElementById("set-receiver-time");
     const badgeList = document.getElementById("badges");
     const badgeCount = document.getElementById("badge-count");
+    const userForm = document.getElementById("user-form");
+    const userNameInput = document.getElementById("user-name");
+    const userPinInput = document.getElementById("user-pin");
+    const userValidityMode = document.getElementById("user-validity-mode");
+    const userDateFields = document.getElementById("user-date-fields");
+    const userValidFromInput = document.getElementById("user-valid-from");
+    const userValidUntilInput = document.getElementById("user-valid-until");
+    const userSubmitButton = document.getElementById("user-submit");
+    const cancelUserEditButton = document.getElementById("cancel-user-edit");
+    const userList = document.getElementById("users");
+    const userCount = document.getElementById("user-count");
+    const userFormControls = userForm.querySelectorAll("input, select, button");
     let configurationCharacteristic;
     let authorizedBadges = [];
     let badgeNames = [];
+    let authorizedUsers = [];
+    let editingUserIndex = null;
+    let userRefreshPromise;
+    let receiverClockTimestamp = null;
+    let receiverClockReadAt = 0;
+    let receiverTimeSynchronized = false;
 
     const deviceMessages = {
       ready: "Receiver prêt.",
@@ -258,9 +382,16 @@
       badge_exists: "Ce badge est déjà autorisé.",
       badge_limit: "La liste est pleine (32 badges).",
       invalid_badge_name: "Le nom du badge est trop long ou invalide.",
+      users_saved: "Liste des utilisateurs enregistrée.",
+      invalid_users: "Utilisateur invalide : vérifiez le nom, le code et les dates.",
+      duplicate_pin: "Ce code secret est déjà attribué.",
+      user_limit: "La liste est pleine (32 utilisateurs).",
       storage_error: "Erreur LittleFS : configuration non enregistrée.",
       bad_json: "Commande de configuration invalide.",
       invalid_duration: "La durée doit être comprise entre 100 et 10 000 ms.",
+      time_synced: "Heure du receiver synchronisée en UTC.",
+      time_read: "Date et heure lues depuis l’ESP32.",
+      invalid_time: "Échec de la synchronisation de l’heure.",
       badge_not_found: "Badge introuvable.",
       unknown_action: "Action de configuration inconnue."
     };
@@ -268,6 +399,139 @@
     function setStatus(message, state = "waiting") {
       statusElement.textContent = message;
       statusElement.dataset.state = state;
+    }
+
+    function toLocalDateTimeValue(date) {
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return localDate.toISOString().slice(0, 19);
+    }
+
+    function renderClock() {
+      if (receiverClockTimestamp === null) {
+        clockStatus.textContent = "Date/heure de l’ESP32 indisponible. Connectez-vous pour la lire.";
+        return;
+      }
+
+      const now = receiverClockTimestamp + Math.floor((performance.now() - receiverClockReadAt) / 1000);
+      const state = receiverTimeSynchronized ? "synchronisée" : "non synchronisée";
+      const receiverDate = new Date(now * 1000);
+      clockStatus.textContent = `Date/heure ESP32 : ${receiverDate.toLocaleString()} (heure locale) / ${receiverDate.toISOString()} (UTC; horloge ${state}).`;
+    }
+
+    async function applyReceiverTime(timestamp) {
+      if (!Number.isInteger(timestamp) || timestamp <= 0 || timestamp > 4102444800) {
+        setStatus("Date et heure invalides.", "error");
+        return;
+      }
+      if (await sendCommand({ action: "syncTime", timestamp })) {
+        await readConfiguration();
+      }
+    }
+
+    function renderUsers() {
+      userList.replaceChildren();
+      userCount.textContent = `${authorizedUsers.length} / ${MAX_USERS} utilisateurs enregistrés.`;
+      if (authorizedUsers.length === 0) {
+        const item = document.createElement("li");
+        item.className = "user-empty";
+        item.textContent = "Aucun code utilisateur enregistré.";
+        userList.append(item);
+        return;
+      }
+
+      for (const [index, user] of authorizedUsers.entries()) {
+        const item = document.createElement("li");
+        item.className = "badge user-item";
+        const details = document.createElement("div");
+        details.className = "user-details";
+        const name = document.createElement("strong");
+        name.textContent = user.name;
+        const validity = user.validFrom && user.validUntil
+          ? `Du ${user.validFrom} au ${user.validUntil} (UTC)`
+          : "Sans date d’expiration";
+        const meta = document.createElement("span");
+        meta.className = "user-meta";
+        meta.textContent = `Code : ${user.pin} · ${validity}`;
+        const actions = document.createElement("div");
+        actions.className = "user-actions";
+        const editButton = document.createElement("button");
+        editButton.className = "button button-badge";
+        editButton.type = "button";
+        editButton.textContent = "Modifier";
+        editButton.disabled = !configurationCharacteristic;
+        editButton.addEventListener("click", () => {
+          editingUserIndex = index;
+          userNameInput.value = user.name;
+          userPinInput.value = user.pin;
+          userValidityMode.value = user.validFrom ? "dates" : "forever";
+          userValidFromInput.value = user.validFrom;
+          userValidUntilInput.value = user.validUntil;
+          const needsDates = userValidityMode.value === "dates";
+          userDateFields.hidden = !needsDates;
+          userValidFromInput.required = needsDates;
+          userValidUntilInput.required = needsDates;
+          userSubmitButton.textContent = "Enregistrer les modifications";
+          cancelUserEditButton.hidden = false;
+        });
+        const removeButton = document.createElement("button");
+        removeButton.className = "button button-badge button-remove";
+        removeButton.type = "button";
+        removeButton.textContent = "Supprimer";
+        removeButton.setAttribute("aria-label", `Supprimer l’utilisateur ${user.name}`);
+        removeButton.disabled = !configurationCharacteristic;
+        removeButton.addEventListener("click", async () => {
+          resetUserForm();
+          if (await sendCommand({ action: "removeUser", index })) {
+            await readConfiguration();
+          }
+        });
+        details.append(name, meta);
+        actions.append(editButton, removeButton);
+        item.append(details, actions);
+        userList.append(item);
+      }
+    }
+
+    function resetUserForm() {
+      userForm.reset();
+      editingUserIndex = null;
+      userDateFields.hidden = true;
+      userValidFromInput.required = false;
+      userValidUntilInput.required = false;
+      userSubmitButton.textContent = "Ajouter l’utilisateur";
+      cancelUserEditButton.hidden = true;
+    }
+
+    async function refreshUsers(count) {
+      if (userRefreshPromise) {
+        return userRefreshPromise;
+      }
+
+      userRefreshPromise = (async () => {
+        const users = [];
+        for (let index = 0; index < count; index++) {
+          if (!await sendCommand({ action: "getUser", index })) {
+            return;
+          }
+          const value = await configurationCharacteristic.readValue();
+          const page = JSON.parse(new TextDecoder().decode(value));
+          if (page.status !== "user_page" || page.userIndex !== index ||
+              !page.user || typeof page.user.name !== "string" ||
+              typeof page.user.pin !== "string") {
+            throw new Error("Réponse de la liste des utilisateurs invalide.");
+          }
+          users.push(page.user);
+        }
+        authorizedUsers = users;
+        renderUsers();
+      })();
+      try {
+        await userRefreshPromise;
+      } catch (error) {
+        setStatus(`Échec de lecture des utilisateurs : ${error.message}`, "error");
+      } finally {
+        userRefreshPromise = undefined;
+      }
     }
 
     function renderBadges() {
@@ -332,16 +596,38 @@
         return;
       }
 
+      if (config.status === "user_page") {
+        return;
+      }
+
       if (!Number.isInteger(config.relayDurationMs) || !Array.isArray(config.authorizedBadges) ||
-          (config.badgeNames !== undefined && !Array.isArray(config.badgeNames))) {
+          (config.badgeNames !== undefined && !Array.isArray(config.badgeNames)) ||
+          (config.users !== undefined && !Array.isArray(config.users)) ||
+          (config.userCount !== undefined &&
+            (!Number.isInteger(config.userCount) || config.userCount < 0 || config.userCount > MAX_USERS))) {
         setStatus("Format de configuration du receiver invalide.", "error");
         return;
       }
 
       durationInput.value = String(config.relayDurationMs);
+      receiverTimeSynchronized = config.timeSynchronized === true;
+      if (Number.isInteger(config.clockTimestamp) && config.clockTimestamp > 0) {
+        receiverClockTimestamp = config.clockTimestamp;
+        receiverClockReadAt = performance.now();
+      } else {
+        receiverClockTimestamp = null;
+      }
+      renderClock();
       authorizedBadges = config.authorizedBadges;
       badgeNames = config.badgeNames || [];
+      const currentUserCount = config.userCount ?? config.users?.length ?? 0;
+      if (currentUserCount === 0) {
+        authorizedUsers = [];
+      } else if (config.status === "users_saved" || authorizedUsers.length !== currentUserCount) {
+        void refreshUsers(currentUserCount);
+      }
       renderBadges();
+      renderUsers();
 
       if (config.learning) {
         learnButton.textContent = "En attente du badge…";
@@ -350,7 +636,7 @@
       }
 
       const message = deviceMessages[config.status] || "Configuration synchronisée.";
-      setStatus(message, config.status === "storage_error" || config.status === "bad_json" ? "error" : "connected");
+      setStatus(message, ["storage_error", "bad_json", "invalid_users", "duplicate_pin", "user_limit", "invalid_time"].includes(config.status) ? "error" : "connected");
     }
 
     async function readConfiguration() {
@@ -361,37 +647,46 @@
     async function sendCommand(command) {
       if (!configurationCharacteristic) {
         setStatus("Connectez-vous au receiver avant de modifier sa configuration.", "error");
-        return;
+        return false;
       }
 
       try {
         const bytes = new TextEncoder().encode(JSON.stringify(command));
         await configurationCharacteristic.writeValueWithResponse(bytes);
+        return true;
       } catch (error) {
         setStatus(`Échec de l’envoi : ${error.message}`, "error");
+        return false;
       }
     }
 
-    async function connect() {
-      if (!isSecureContext || !navigator.bluetooth) {
-        setStatus("Web Bluetooth nécessite Chrome sur HTTPS ou localhost.", "error");
-        return;
+    function setConfigurationControlsEnabled(enabled) {
+      durationInput.disabled = !enabled;
+      saveButton.disabled = !enabled;
+      learnButton.disabled = !enabled;
+      syncDeviceTimeButton.disabled = !enabled;
+      receiverDateTimeInput.disabled = !enabled;
+      setReceiverTimeButton.disabled = !enabled;
+      userFormControls.forEach(control => { control.disabled = !enabled; });
+      if (enabled) {
+        userDateFields.hidden = userValidityMode.value !== "dates";
       }
+    }
 
+    async function connectToDevice(device) {
       connectButton.disabled = true;
       try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ services: [ACTION_SERVICE_UUID] }],
-          optionalServices: [CONFIG_SERVICE_UUID]
-        });
         device.addEventListener("gattserverdisconnected", () => {
           configurationCharacteristic = undefined;
-          durationInput.disabled = true;
-          saveButton.disabled = true;
-          learnButton.disabled = true;
+          setConfigurationControlsEnabled(false);
+          userFormControls.forEach(control => { control.disabled = true; });
           connectButton.disabled = false;
           renderBadges();
-          setStatus("Receiver déconnecté.");
+          renderUsers();
+          receiverClockTimestamp = null;
+          receiverTimeSynchronized = false;
+          renderClock();
+          setStatus("Receiver déconnecté. La date/heure sera relue à la prochaine connexion.");
         });
 
         const server = await device.gatt.connect();
@@ -401,19 +696,55 @@
           updateConfiguration(event.target.value);
         });
         await configurationCharacteristic.startNotifications();
-        durationInput.disabled = false;
-        saveButton.disabled = false;
-        learnButton.disabled = false;
+        setConfigurationControlsEnabled(true);
         connectButton.disabled = false;
         await readConfiguration();
-        setStatus(`Connecté à ${device.name || "PortalReceiver"}.`, "connected");
+        receiverDateTimeInput.value = toLocalDateTimeValue(new Date());
+        if (await sendCommand({ action: "getTime" })) {
+          await readConfiguration();
+          setStatus(`Connecté à ${device.name || "PortalReceiver"} ; date/heure lue depuis l’ESP32.`, "connected");
+        }
       } catch (error) {
         configurationCharacteristic = undefined;
         connectButton.disabled = false;
-        durationInput.disabled = true;
-        saveButton.disabled = true;
-        learnButton.disabled = true;
+        setConfigurationControlsEnabled(false);
         setStatus(`Échec de connexion : ${error.message}`, "error");
+      }
+    }
+
+    async function connect() {
+      if (!isSecureContext || !navigator.bluetooth) {
+        setStatus("Web Bluetooth nécessite Chrome sur HTTPS ou localhost.", "error");
+        return;
+      }
+
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [ACTION_SERVICE_UUID] }],
+          optionalServices: [CONFIG_SERVICE_UUID]
+        });
+        await connectToDevice(device);
+      } catch (error) {
+        connectButton.disabled = false;
+        setStatus(`Échec de connexion : ${error.message}`, "error");
+      }
+    }
+
+    async function reconnectToAuthorizedReceiver() {
+      if (!isSecureContext || !navigator.bluetooth ||
+          typeof navigator.bluetooth.getDevices !== "function") {
+        return;
+      }
+      try {
+        const devices = await navigator.bluetooth.getDevices();
+        const receiver = devices.find(device => device.name === "Portail Vital");
+        if (receiver) {
+          await connectToDevice(receiver);
+        } else {
+          clockStatus.textContent = "ESP32 non autorisé pour ce site. Connectez-vous pour lire sa date/heure.";
+        }
+      } catch (error) {
+        clockStatus.textContent = `Impossible de lire l’horloge de l’ESP32 : ${error.message}`;
       }
     }
 
@@ -427,7 +758,60 @@
       sendCommand({ action: "setRelayDuration", relayDurationMs: duration });
     });
     learnButton.addEventListener("click", () => sendCommand({ action: "learn" }));
+    syncDeviceTimeButton.addEventListener("click", () => {
+      receiverDateTimeInput.value = toLocalDateTimeValue(new Date());
+      void applyReceiverTime(Math.floor(Date.now() / 1000));
+    });
+    setReceiverTimeButton.addEventListener("click", () => {
+      if (!receiverDateTimeInput.value) {
+        setStatus("Choisissez une date et une heure.", "error");
+        return;
+      }
+      const timestamp = Math.floor(new Date(receiverDateTimeInput.value).getTime() / 1000);
+      void applyReceiverTime(timestamp);
+    });
+    userValidityMode.addEventListener("change", () => {
+      const needsDates = userValidityMode.value === "dates";
+      userDateFields.hidden = !needsDates;
+      userValidFromInput.required = needsDates;
+      userValidUntilInput.required = needsDates;
+    });
+    userForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const isEditing = editingUserIndex !== null;
+      const name = userNameInput.value.trim();
+      const pin = userPinInput.value;
+      const validFrom = userValidityMode.value === "dates" ? userValidFromInput.value : "";
+      const validUntil = userValidityMode.value === "dates" ? userValidUntilInput.value : "";
+      if (!name || name.length > 32 || !/^[0-9]{1,6}$/.test(pin) ||
+          (userValidityMode.value === "dates" && (!validFrom || !validUntil || validFrom > validUntil))) {
+        setStatus("Vérifiez le nom, le code (1 à 6 chiffres) et la période de validité.", "error");
+        return;
+      }
+      if (!isEditing && authorizedUsers.length >= MAX_USERS) {
+        setStatus("La liste est pleine (32 utilisateurs).", "error");
+        return;
+      }
+      if (authorizedUsers.some((user, index) => index !== editingUserIndex && user.pin === pin)) {
+        setStatus("Ce code secret est déjà attribué.", "error");
+        return;
+      }
+      const index = isEditing ? editingUserIndex : authorizedUsers.length;
+      if (await sendCommand({
+        action: "upsertUser",
+        index,
+        user: { name, pin, validFrom, validUntil }
+      })) {
+        resetUserForm();
+        await readConfiguration();
+      }
+    });
+    cancelUserEditButton.addEventListener("click", resetUserForm);
     renderBadges();
+    renderUsers();
+    renderClock();
+    window.setInterval(renderClock, 1000);
+    void reconnectToAuthorizedReceiver();
   </script>
 </body>
 </html>

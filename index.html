@@ -218,6 +218,7 @@
     .badge-id { color: var(--muted); font-size: 12px; }
     .badge input { min-height: 38px; padding: 7px 9px; }
     .badge-actions { display: flex; align-items: center; gap: 8px; }
+    .badge-actions-stacked { justify-content: flex-start; }
     .badge-empty, .user-empty { color: var(--muted); font-size: 13px; }
     .button-badge { min-height: 34px; padding: 6px 9px; font-size: 12px; }
     .button-remove { color: #a23e2a; }
@@ -622,7 +623,7 @@
         nameInput.value = badgeNames.find(entry => entry.badgeId === badgeId)?.name || "";
         nameInput.disabled = !configurationCharacteristic;
         const actions = document.createElement("div");
-        actions.className = "badge-actions";
+        actions.className = "badge-actions badge-actions-stacked";
         const saveNameButton = document.createElement("button");
         saveNameButton.className = "button button-badge";
         saveNameButton.type = "button";
@@ -659,9 +660,9 @@
             setStatus(`Échec de l’actualisation des badges : ${error.message}`, "error");
           }
         });
-        details.append(label, nameInput);
+        details.append(label, nameInput, actions);
         actions.append(saveNameButton, removeButton);
-        item.append(details, actions);
+        item.append(details);
         badgeList.append(item);
       }
     }

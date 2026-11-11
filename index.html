@@ -194,6 +194,8 @@
     .button-learn:hover { background: #d95c3e; }
     .learning-countdown { margin: -8px 0 16px; color: var(--green-dark); font-size: 13px; font-weight: 700; }
     .learning-countdown[hidden] { display: none; }
+    .firmware-progress { width: 100%; height: 14px; margin-top: 12px; accent-color: var(--green); }
+    .firmware-status { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 
     .badges {
       display: grid;
@@ -257,7 +259,6 @@
         <span class="tag">CONFIGURATION · BLE</span>
       </div>
     </header>
-    <section aria-labelledby="page-title">
     <section aria-labelledby="page-title">
       <button class="button button-primary" id="connect" type="button">Se connecter au portail</button>
       <p class="status" id="status" data-state="waiting" role="status" aria-live="polite">
@@ -336,12 +337,27 @@
       </div>
     </section>
 
+    <section class="section" aria-labelledby="firmware-title">
+      <h2 id="firmware-title">Mise à jour du firmware</h2>
+      <p class="hint">Sélectionnez le fichier .bin compilé pour ce receiver. Gardez-le alimenté et à proximité pendant le transfert BLE et le redémarrage.</p>
+      <label for="firmware-file">Firmware ESP32 (.bin)
+        <input id="firmware-file" type="file" accept=".bin,application/octet-stream">
+      </label>
+      <button class="button button-primary" id="firmware-upload" type="button" disabled>Téléverser le firmware</button>
+      <progress class="firmware-progress" id="firmware-progress" max="100" value="0" aria-label="Progression de la mise à jour" hidden></progress>
+      <p class="firmware-status" id="firmware-status" role="status" aria-live="polite">Connectez-vous au receiver pour mettre à jour son firmware.</p>
+    </section>
+
   </main>
 
   <script>
     const ACTION_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const CONFIG_SERVICE_UUID = "8d3f0001-9b2c-4e6a-9b7a-1e9e00000001";
     const CONFIG_CHARACTERISTIC_UUID = "8d3f0002-9b2c-4e6a-9b7a-1e9e00000001";
+    const OTA_SERVICE_UUID = "8d3f0003-9b2c-4e6a-9b7a-1e9e00000001";
+    const OTA_CONTROL_CHARACTERISTIC_UUID = "8d3f0004-9b2c-4e6a-9b7a-1e9e00000001";
+    const OTA_DATA_CHARACTERISTIC_UUID = "8d3f0005-9b2c-4e6a-9b7a-1e9e00000001";
+    const OTA_STATUS_CHARACTERISTIC_UUID = "8d3f0006-9b2c-4e6a-9b7a-1e9e00000001";
     const MAX_BADGES = 32;
     const MAX_USERS = 32;
 
@@ -368,8 +384,17 @@
     const cancelUserEditButton = document.getElementById("cancel-user-edit");
     const userList = document.getElementById("users");
     const userCount = document.getElementById("user-count");
+    const firmwareFileInput = document.getElementById("firmware-file");
+    const firmwareUploadButton = document.getElementById("firmware-upload");
+    const firmwareProgress = document.getElementById("firmware-progress");
+    const firmwareStatus = document.getElementById("firmware-status");
     const userFormControls = userForm.querySelectorAll("input, select, button");
     let configurationCharacteristic;
+    let otaControlCharacteristic;
+    let otaDataCharacteristic;
+    let otaStatusCharacteristic;
+    let firmwareUploadInProgress = false;
+    let firmwareRestarting = false;
     let authorizedBadges = [];
     let badgeNames = [];
     let authorizedUsers = [];
@@ -765,14 +790,109 @@
       }
     }
 
+    function setFirmwareControlsEnabled() {
+      firmwareFileInput.disabled = firmwareUploadInProgress;
+      firmwareUploadButton.disabled = !otaControlCharacteristic || !otaDataCharacteristic ||
+        !otaStatusCharacteristic || !firmwareFileInput.files.length ||
+        firmwareUploadInProgress || firmwareRestarting;
+    }
+
+    async function readFirmwareStatus() {
+      const value = await otaStatusCharacteristic.readValue();
+      return new TextDecoder().decode(value).trim();
+    }
+
+    async function negotiateFirmwareChunkSize() {
+      let lastError;
+      for (const size of [512, 256, 128, 64, 32, 20]) {
+        try {
+          await otaDataCharacteristic.writeValueWithResponse(new Uint8Array(size));
+          return size;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw new Error(`Impossible de négocier la taille des paquets BLE : ${lastError.message}`);
+    }
+
+    async function uploadFirmware() {
+      const file = firmwareFileInput.files[0];
+      if (!file || !file.name.toLowerCase().endsWith(".bin") ||
+          file.size === 0 || file.size > 0xffffffff) {
+        firmwareStatus.textContent = "Sélectionnez un fichier .bin non vide de taille valide.";
+        return;
+      }
+
+      firmwareUploadInProgress = true;
+      firmwareProgress.hidden = false;
+      firmwareProgress.max = file.size;
+      firmwareProgress.value = 0;
+      firmwareStatus.textContent = "Négociation de la connexion BLE…";
+      setFirmwareControlsEnabled();
+      let transferStarted = false;
+      try {
+        const chunkSize = await negotiateFirmwareChunkSize();
+        await otaControlCharacteristic.writeValueWithResponse(
+          new TextEncoder().encode(`START:${file.size}`)
+        );
+        transferStarted = true;
+        if (await readFirmwareStatus() !== "receiving") {
+          throw new Error("Le receiver a refusé le démarrage de la mise à jour.");
+        }
+
+        firmwareStatus.textContent = "Transfert du firmware…";
+        let lastStatusRead = 0;
+        for (let offset = 0; offset < file.size; offset += chunkSize) {
+          const bytes = new Uint8Array(await file.slice(offset, offset + chunkSize).arrayBuffer());
+          await otaDataCharacteristic.writeValueWithResponse(bytes);
+          const transferred = offset + bytes.byteLength;
+          firmwareProgress.value = transferred;
+          const percent = Math.floor(transferred * 100 / file.size);
+          firmwareStatus.textContent = `Transfert du firmware… ${percent} %`;
+          if (transferred - lastStatusRead >= 16384) {
+            if (await readFirmwareStatus() !== "receiving") {
+              throw new Error("Le receiver a interrompu la réception du firmware.");
+            }
+            lastStatusRead = transferred;
+          }
+        }
+
+        firmwareStatus.textContent = "Vérification du firmware par le receiver…";
+        await otaControlCharacteristic.writeValueWithResponse(new TextEncoder().encode("END"));
+        if (await readFirmwareStatus() !== "complete") {
+          throw new Error("Le receiver n’a pas pu valider le firmware reçu.");
+        }
+        firmwareRestarting = true;
+        firmwareProgress.value = file.size;
+        firmwareStatus.textContent = "Firmware vérifié. Le receiver redémarre avec la nouvelle version…";
+      } catch (error) {
+        if (transferStarted && otaControlCharacteristic) {
+          try {
+            await otaControlCharacteristic.writeValueWithResponse(new TextEncoder().encode("ABORT"));
+          } catch (abortError) {
+            console.error("Échec de l’annulation de la mise à jour BLE :", abortError);
+          }
+        }
+        firmwareStatus.textContent = `Échec de la mise à jour : ${error.message}`;
+        setStatus(`Échec de la mise à jour du firmware : ${error.message}`, "error");
+      } finally {
+        firmwareUploadInProgress = false;
+        setFirmwareControlsEnabled();
+      }
+    }
+
     async function connectToDevice(device) {
       connectButton.disabled = true;
       connectButton.textContent = "Connexion…";
       try {
         device.addEventListener("gattserverdisconnected", () => {
           configurationCharacteristic = undefined;
+          otaControlCharacteristic = undefined;
+          otaDataCharacteristic = undefined;
+          otaStatusCharacteristic = undefined;
           stopBadgeLearning();
           setConfigurationControlsEnabled(false);
+          setFirmwareControlsEnabled();
           connectButton.textContent = "Se connecter au portail";
           connectButton.disabled = false;
           renderBadges();
@@ -790,7 +910,22 @@
           updateConfiguration(event.target.value);
         });
         await configurationCharacteristic.startNotifications();
+        try {
+          const otaService = await server.getPrimaryService(OTA_SERVICE_UUID);
+          otaControlCharacteristic = await otaService.getCharacteristic(OTA_CONTROL_CHARACTERISTIC_UUID);
+          otaDataCharacteristic = await otaService.getCharacteristic(OTA_DATA_CHARACTERISTIC_UUID);
+          otaStatusCharacteristic = await otaService.getCharacteristic(OTA_STATUS_CHARACTERISTIC_UUID);
+          firmwareStatus.textContent = "Firmware BLE prêt à être mis à jour.";
+        } catch (error) {
+          otaControlCharacteristic = undefined;
+          otaDataCharacteristic = undefined;
+          otaStatusCharacteristic = undefined;
+          firmwareStatus.textContent = "Ce firmware ne prend pas en charge les mises à jour BLE.";
+          console.warn("Service de mise à jour BLE indisponible :", error);
+        }
+        firmwareRestarting = false;
         setConfigurationControlsEnabled(true);
+        setFirmwareControlsEnabled();
         connectButton.textContent = "Portail connecté";
         connectButton.disabled = true;
         await readConfiguration();
@@ -801,9 +936,13 @@
         }
       } catch (error) {
         configurationCharacteristic = undefined;
+        otaControlCharacteristic = undefined;
+        otaDataCharacteristic = undefined;
+        otaStatusCharacteristic = undefined;
         connectButton.textContent = "Se connecter au portail";
         connectButton.disabled = false;
         setConfigurationControlsEnabled(false);
+        setFirmwareControlsEnabled();
         setStatus(`Échec de connexion : ${error.message}`, "error");
       }
     }
@@ -817,7 +956,7 @@
       try {
         const device = await navigator.bluetooth.requestDevice({
           filters: [{ services: [ACTION_SERVICE_UUID] }],
-          optionalServices: [CONFIG_SERVICE_UUID]
+          optionalServices: [CONFIG_SERVICE_UUID, OTA_SERVICE_UUID]
         });
         await connectToDevice(device);
       } catch (error) {
@@ -846,6 +985,8 @@
     }
 
     connectButton.addEventListener("click", connect);
+    firmwareFileInput.addEventListener("change", setFirmwareControlsEnabled);
+    firmwareUploadButton.addEventListener("click", uploadFirmware);
     saveButton.addEventListener("click", () => {
       const duration = Number(durationInput.value);
       if (!Number.isInteger(duration) || duration < 100 || duration > 10000) {
